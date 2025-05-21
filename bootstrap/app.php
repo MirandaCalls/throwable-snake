@@ -22,4 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
             AddQueuedCookiesToResponse::class,
         ]);
     })
+    ->withExceptions(function (Exceptions $exceptions) {
+    })
     ->create();
