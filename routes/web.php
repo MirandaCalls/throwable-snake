@@ -1,17 +1,18 @@
 <?php
 
+use App\Battlesnake\SnakeDetails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return response()->json([
-        'apiversion' => '1',
-        'author' => 'MirandaCalls',
-        'color' => '#be25a8',
-        'head' => 'default',
-        'tail' => 'default',
-        'version' => '0.0.2',
-    ]);
+    return response()->json(new SnakeDetails(
+        apiversion: '1',
+        author: 'MirandaCalls',
+        color: '#be25a8',
+        head: 'default',
+        tail: 'default',
+        version: '0.0.2',
+    ));
 });
 
 Route::post('/move', function (Request $request) {
