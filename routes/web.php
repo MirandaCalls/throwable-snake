@@ -3,7 +3,9 @@
 use App\Battlesnake\Battlesnake;
 use App\Battlesnake\Coordinate;
 use App\Battlesnake\MoveDirection;
+use App\Battlesnake\SnakeRequestEnd;
 use App\Battlesnake\SnakeRequestMove;
+use App\Battlesnake\SnakeRequestStart;
 use App\Battlesnake\SnakeResponseDetails;
 use App\Battlesnake\SnakeResponseMove;
 use Crell\Serde\SerdeCommon;
@@ -24,6 +26,13 @@ Route::get('/', function () {
         200,
         ['Content-Type' => 'application/json']
     );
+});
+
+Route::post('/start', function (Request $request) {
+    $serde = new SerdeCommon();
+    $serde->deserialize($request->getContent(), 'json', SnakeRequestStart::class);
+    // TODO
+    return response()->noContent();
 });
 
 Route::post('/move', function (Request $request) {
@@ -115,4 +124,11 @@ Route::post('/move', function (Request $request) {
         200,
         ['Content-Type' => 'application/json']
     );
+});
+
+Route::post('/end', function (Request $request) {
+    $serde = new SerdeCommon();
+    $serde->deserialize($request->getContent(), 'json', SnakeRequestEnd::class);
+    // TODO
+    return response()->noContent();
 });
