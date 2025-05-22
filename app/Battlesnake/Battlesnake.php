@@ -13,7 +13,7 @@ readonly class Battlesnake
         /** @var Coordinate[] $body */
         #[Serde\SequenceField(arrayType: Coordinate::class)]
         public array $body,
-        public int $latency,
+        public string $latency,
         public Coordinate $head,
         public int $length,
         public string $shout,
