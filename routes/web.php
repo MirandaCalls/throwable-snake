@@ -1,73 +1,89 @@
 <?php
 
-use App\Battlesnake\SnakeDetails;
+use App\Battlesnake\Battlesnake;
+use App\Battlesnake\Coordinate;
+use App\Battlesnake\MoveDirection;
+use App\Battlesnake\SnakeRequestMove;
+use App\Battlesnake\SnakeResponseDetails;
+use App\Battlesnake\SnakeResponseMove;
+use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return response()->json(new SnakeDetails(
-        apiversion: '1',
-        author: 'MirandaCalls',
-        color: '#be25a8',
-        head: 'default',
-        tail: 'default',
-        version: '0.0.2',
-    ));
+    $serde = new SerdeCommon();
+    return response(
+        $serde->serialize(new SnakeResponseDetails(
+            apiversion: '1',
+            author: 'MirandaCalls',
+            color: '#be25a8',
+            head: 'default',
+            tail: 'default',
+            version: '0.0.2',
+        ), 'json'),
+        200,
+        ['Content-Type' => 'application/json']
+    );
 });
 
 Route::post('/move', function (Request $request) {
-    $gameData = $request->json()->all();
-    $board = $gameData['board'];
-    $food = $board['food'];
-    $snakes = $gameData['board']['snakes'];
-    $throwableSnake = $gameData['you'];
-    $head = $throwableSnake['head'];
+    $serde = new SerdeCommon();
+    $data = $serde->deserialize($request->getContent(), 'json', SnakeRequestMove::class);
+
+    $board = $data->board;
+    $food = $board->food;
+    $snakes = $board->snakes;
+    $throwableSnake = $data->you;
+    $head = $throwableSnake->head;
 
     $possibleMoves = [
         [
-            'name' => 'up',
-            'x' => $head['x'],
-            'y' => $head['y'] + 1,
+            'direction' => MoveDirection::UP,
+            'x' => $head->x,
+            'y' => $head->y + 1,
         ],
         [
-            'name' => 'down',
-            'x' => $head['x'],
-            'y' => $head['y'] - 1,
+            'direction' => MoveDirection::DOWN,
+            'x' => $head->x,
+            'y' => $head->y - 1,
         ],
         [
-            'name' => 'left',
-            'x' => $head['x'] - 1,
-            'y' => $head['y'],
+            'direction' => MoveDirection::LEFT,
+            'x' => $head->x - 1,
+            'y' => $head->y,
         ],
         [
-            'name' => 'right',
-            'x' => $head['x'] + 1,
-            'y' => $head['y'],
+            'direction' => MoveDirection::RIGHT,
+            'x' => $head->x + 1,
+            'y' => $head->y,
         ]
     ];
 
     foreach ($possibleMoves as $idx => $move) {
-        if ($move['x'] < 0 || $move['x'] >= $board['width'] || $move['y'] < 0 || $move['y'] >= $board['height']) {
+        if ($move['x'] < 0 || $move['x'] >= $board->width || $move['y'] < 0 || $move['y'] >= $board->height) {
             unset($possibleMoves[$idx]);
         }
     }
 
-    foreach ($throwableSnake['body'] as $part) {
+    /** @var Coordinate $part */
+    foreach ($throwableSnake->body as $part) {
         foreach ($possibleMoves as $idx => $move) {
-            if ($part['x'] === $move['x'] && $part['y'] === $move['y']) {
+            if ($part->x === $move['x'] && $part->y === $move['y']) {
                 unset($possibleMoves[$idx]);
             }
         }
     }
 
+    /** @var Battlesnake $snake */
     foreach ($snakes as $snake) {
-        if ($snake['id'] === $throwableSnake['id']) {
+        if ($snake->id === $throwableSnake->id) {
             continue;
         }
 
-        foreach ($snake['body'] as $part) {
+        /** @var Coordinate $part */
+        foreach ($snake->body as $part) {
             foreach ($possibleMoves as $idx => $move) {
-                if ($part['x'] === $move['x'] && $part['y'] === $move['y']) {
+                if ($part->x === $move['x'] && $part->y === $move['y']) {
                     unset($possibleMoves[$idx]);
                 }
             }
@@ -76,22 +92,27 @@ Route::post('/move', function (Request $request) {
 
     foreach ($possibleMoves as $idx => $move) {
         $distances = [];
+        /** @var Coordinate $f */
         foreach ($food as $f) {
-            $distances[] = abs($f['x'] - $move['x']) + abs($f['y'] - $move['y']);
+            $distances[] = abs($f->x - $move['x']) + abs($f->y - $move['y']);
         }
         $possibleMoves[$idx]['distance'] = min($distances);
     }
 
     if (empty($possibleMoves)) {
-        $nextMove = 'up';
+        $nextMove = MoveDirection::UP;
     } else {
         usort($possibleMoves, static function ($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
-        $nextMove = $possibleMoves[0]['name'];
+        $nextMove = $possibleMoves[0]['direction'];
     }
 
-    return response()->json([
-        'move' => $nextMove,
-    ]);
+    return response(
+        $serde->serialize(new SnakeResponseMove(
+            move: $nextMove,
+        ), 'json'),
+        200,
+        ['Content-Type' => 'application/json']
+    );
 });
