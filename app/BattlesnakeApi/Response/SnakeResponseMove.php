@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Battlesnake;
+namespace App\BattlesnakeApi\Response;
 
+use App\BattlesnakeApi\Enum\MoveDirection;
 use Crell\Serde\Attributes as Serde;
 
 #[Serde\ClassSettings(omitNullFields: true)]

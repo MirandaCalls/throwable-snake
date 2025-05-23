@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Battlesnake;
+namespace App\BattlesnakeApi\Response;
 
 use Crell\Serde\Attributes as Serde;
 

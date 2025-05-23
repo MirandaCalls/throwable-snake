@@ -1,19 +1,18 @@
 <?php
 
-use App\Battlesnake\Battlesnake;
-use App\Battlesnake\Coordinate;
-use App\Battlesnake\MoveDirection;
-use App\Battlesnake\SnakeRequestEnd;
-use App\Battlesnake\SnakeRequestMove;
-use App\Battlesnake\SnakeRequestStart;
-use App\Battlesnake\SnakeResponseDetails;
-use App\Battlesnake\SnakeResponseMove;
+use App\Battlesnake\Enum\MoveDirection;
+use App\Battlesnake\Request\SnakeRequestEnd;
+use App\Battlesnake\Request\SnakeRequestMove;
+use App\Battlesnake\Request\SnakeRequestStart;
+use App\Battlesnake\Response\SnakeResponseDetails;
+use App\Battlesnake\Response\SnakeResponseMove;
+use App\Battlesnake\Value\Coordinate;
+use App\Battlesnake\Value\Battlesnake;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    $serde = new SerdeCommon();
+Route::get('/', function (SerdeCommon $serde) {
     return response(
         $serde->serialize(new SnakeResponseDetails(
             apiversion: '1',
@@ -21,22 +20,19 @@ Route::get('/', function () {
             color: '#be25a8',
             head: 'default',
             tail: 'default',
-            version: '0.0.2',
+            version: '0.0.3',
         ), 'json'),
         200,
         ['Content-Type' => 'application/json']
     );
 });
 
-Route::post('/start', function (Request $request) {
-    $serde = new SerdeCommon();
+Route::post('/start', function (Request $request, SerdeCommon $serde) {
     $serde->deserialize($request->getContent(), 'json', SnakeRequestStart::class);
-    // TODO
     return response()->noContent();
 });
 
-Route::post('/move', function (Request $request) {
-    $serde = new SerdeCommon();
+Route::post('/move', function (Request $request, SerdeCommon $serde) {
     $data = $serde->deserialize($request->getContent(), 'json', SnakeRequestMove::class);
 
     $board = $data->board;
@@ -126,9 +122,7 @@ Route::post('/move', function (Request $request) {
     );
 });
 
-Route::post('/end', function (Request $request) {
-    $serde = new SerdeCommon();
+Route::post('/end', function (Request $request, SerdeCommon $serde) {
     $serde->deserialize($request->getContent(), 'json', SnakeRequestEnd::class);
-    // TODO
     return response()->noContent();
 });

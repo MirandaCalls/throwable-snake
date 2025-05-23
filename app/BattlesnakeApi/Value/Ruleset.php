@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Battlesnake;
+namespace App\BattlesnakeApi\Value;
 
 readonly class Ruleset
 {

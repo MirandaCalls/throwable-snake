@@ -1,6 +1,10 @@
 <?php
 
-namespace App\Battlesnake;
+namespace App\BattlesnakeApi\Request;
+
+use App\BattlesnakeApi\Value\Game;
+use App\BattlesnakeApi\Value\Board;
+use App\BattlesnakeApi\Value\Battlesnake;
 
 readonly class SnakeRequestStart
 {
