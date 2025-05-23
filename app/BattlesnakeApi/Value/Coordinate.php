@@ -9,4 +9,9 @@ readonly class Coordinate
         public int $y
     ) {
     }
+
+    public function distanceFrom(Coordinate $position): int
+    {
+        return abs($this->x - $position->x) + abs($this->y - $position->y);
+    }
 }

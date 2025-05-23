@@ -38,88 +38,29 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     $data = $serde->deserialize($request->getContent(), 'json', SnakeRequestMove::class);
 
     $board = $data->board;
-    $food = $board->food;
-    $snakes = $board->snakes;
     $throwableSnake = $data->you;
-    $head = $throwableSnake->head;
 
-    $possibleMoves = [
-        new PossibleMove(
-            direction: MoveDirection::UP,
-            position: new Coordinate(
-                x: $head->x,
-                y: $head->y + 1,
-            )
-        ),
-        new PossibleMove(
-            direction: MoveDirection::DOWN,
-            position: new Coordinate(
-                x: $head->x,
-                y: $head->y - 1,
-            )
-        ),
-        new PossibleMove(
-            direction: MoveDirection::LEFT,
-            position: new Coordinate(
-                x: $head->x - 1,
-                y: $head->y,
-            )
-        ),
-        new PossibleMove(
-            direction: MoveDirection::RIGHT,
-            position: new Coordinate(
-                x: $head->x + 1,
-                y: $head->y,
-            )
-        ),
-    ];
-
-    /** @var PossibleMove $move */
-    foreach ($possibleMoves as $idx => $move) {
-        if ($move->position->x < 0 ||
-            $move->position->x >= $board->width ||
-            $move->position->y < 0 ||
-            $move->position->y >= $board->height
-        ) {
-            unset($possibleMoves[$idx]);
-        }
-    }
-
-    /** @var Coordinate $part */
-    foreach ($throwableSnake->body as $part) {
-        /** @var PossibleMove $move */
-        foreach ($possibleMoves as $idx => $move) {
-            if ($part->x === $move->position->x && $part->y === $move->position->y) {
-                unset($possibleMoves[$idx]);
-            }
-        }
-    }
+    $possibleMoves = array_filter(
+        PossibleMove::possibleMovesFromPosition($throwableSnake->head),
+        static fn (PossibleMove $move): bool => !$move->isOutOfBounds($board)
+    );
 
     /** @var Battlesnake $snake */
-    foreach ($snakes as $snake) {
-        if ($snake->id === $throwableSnake->id) {
-            continue;
-        }
-
-        /** @var Coordinate $part */
-        foreach ($snake->body as $part) {
-            /** @var PossibleMove $move */
-            foreach ($possibleMoves as $idx => $move) {
-                if ($part->x === $move->position->x && $part->y === $move->position->y) {
-                    unset($possibleMoves[$idx]);
-                }
-            }
-        }
+    foreach ($board->snakes as $snake) {
+        $possibleMoves = array_filter(
+            $possibleMoves,
+            static fn (PossibleMove $move): bool => !$move->collidesWithSnake($snake)
+        );
     }
 
     /** @var PossibleMove $move */
-    foreach ($possibleMoves as $idx => $move) {
-        $distances = [];
-        /** @var Coordinate $f */
-        foreach ($food as $f) {
-            $distances[] = abs($f->x - $move->position->x) + abs($f->y - $move->position->y);
-        }
-        $possibleMoves[$idx]->foodDistance = min($distances);
+    foreach ($possibleMoves as $move) {
+        $move->foodDistance = min(
+            array_map(
+                static fn(Coordinate $f): int => $move->position->distanceFrom($f),
+                $board->food
+            )
+        );
     }
 
     if (empty($possibleMoves)) {
@@ -132,7 +73,7 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     }
 
     $shout = null;
-    if (random_int(1, 100) > 90) {
+    if (empty($possibleMoves) || (random_int(1, 100) > 90)) {
         $exceptionGenerator = new ExceptionGenerator();
         $shout = $exceptionGenerator->randomMessage();
     }
