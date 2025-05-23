@@ -9,6 +9,7 @@ use App\BattlesnakeApi\Response\SnakeResponseMove;
 use App\BattlesnakeApi\Value\Coordinate;
 use App\BattlesnakeApi\Value\Battlesnake;
 use App\Snake\ExceptionGenerator;
+use App\Snake\PossibleMove;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,38 +44,52 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     $head = $throwableSnake->head;
 
     $possibleMoves = [
-        [
-            'direction' => MoveDirection::UP,
-            'x' => $head->x,
-            'y' => $head->y + 1,
-        ],
-        [
-            'direction' => MoveDirection::DOWN,
-            'x' => $head->x,
-            'y' => $head->y - 1,
-        ],
-        [
-            'direction' => MoveDirection::LEFT,
-            'x' => $head->x - 1,
-            'y' => $head->y,
-        ],
-        [
-            'direction' => MoveDirection::RIGHT,
-            'x' => $head->x + 1,
-            'y' => $head->y,
-        ]
+        new PossibleMove(
+            direction: MoveDirection::UP,
+            position: new Coordinate(
+                x: $head->x,
+                y: $head->y + 1,
+            )
+        ),
+        new PossibleMove(
+            direction: MoveDirection::DOWN,
+            position: new Coordinate(
+                x: $head->x,
+                y: $head->y - 1,
+            )
+        ),
+        new PossibleMove(
+            direction: MoveDirection::LEFT,
+            position: new Coordinate(
+                x: $head->x - 1,
+                y: $head->y,
+            )
+        ),
+        new PossibleMove(
+            direction: MoveDirection::RIGHT,
+            position: new Coordinate(
+                x: $head->x + 1,
+                y: $head->y,
+            )
+        ),
     ];
 
+    /** @var PossibleMove $move */
     foreach ($possibleMoves as $idx => $move) {
-        if ($move['x'] < 0 || $move['x'] >= $board->width || $move['y'] < 0 || $move['y'] >= $board->height) {
+        if ($move->position->x < 0 ||
+            $move->position->x >= $board->width ||
+            $move->position->y < 0 ||
+            $move->position->y >= $board->height
+        ) {
             unset($possibleMoves[$idx]);
         }
     }
 
     /** @var Coordinate $part */
     foreach ($throwableSnake->body as $part) {
+        /** @var PossibleMove $move */
         foreach ($possibleMoves as $idx => $move) {
-            if ($part->x === $move['x'] && $part->y === $move['y']) {
+            if ($part->x === $move->position->x && $part->y === $move->position->y) {
                 unset($possibleMoves[$idx]);
             }
         }
@@ -88,30 +103,32 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
 
         /** @var Coordinate $part */
         foreach ($snake->body as $part) {
+            /** @var PossibleMove $move */
             foreach ($possibleMoves as $idx => $move) {
-                if ($part->x === $move['x'] && $part->y === $move['y']) {
+                if ($part->x === $move->position->x && $part->y === $move->position->y) {
                     unset($possibleMoves[$idx]);
                 }
             }
         }
     }
 
+    /** @var PossibleMove $move */
     foreach ($possibleMoves as $idx => $move) {
         $distances = [];
         /** @var Coordinate $f */
         foreach ($food as $f) {
-            $distances[] = abs($f->x - $move['x']) + abs($f->y - $move['y']);
+            $distances[] = abs($f->x - $move->position->x) + abs($f->y - $move->position->y);
         }
-        $possibleMoves[$idx]['distance'] = min($distances);
+        $possibleMoves[$idx]->foodDistance = min($distances);
     }
 
     if (empty($possibleMoves)) {
         $nextMove = MoveDirection::UP;
     } else {
         usort($possibleMoves, static function ($a, $b) {
-            return $a['distance'] <=> $b['distance'];
+            return $a->foodDistance <=> $b->foodDistance;
         });
-        $nextMove = $possibleMoves[0]['direction'];
+        $nextMove = $possibleMoves[0]->direction;
     }
 
     $shout = null;
