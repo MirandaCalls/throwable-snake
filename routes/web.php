@@ -12,6 +12,7 @@ use App\Snake\ExceptionGenerator;
 use App\Snake\PossibleMove;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (SerdeCommon $serde) {
@@ -63,6 +64,8 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             )
         );
     }
+
+    Log::info($possibleMoves);
 
     if (empty($possibleMoves)) {
         $nextMove = MoveDirection::UP;
