@@ -15,14 +15,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (SerdeCommon $serde) {
+    $config = config('snake');
     return response(
         $serde->serialize(new SnakeResponseDetails(
-            apiversion: '1',
-            author: 'MirandaCalls',
-            color: '#be25a8',
-            head: 'default',
-            tail: 'default',
-            version: '0.0.3',
+            apiversion: $config['apiversion'],
+            author: $config['author'],
+            color: $config['color'],
+            head: $config['head'],
+            tail: $config['tail'],
+            version: $config['version'],
         ), 'json'),
         200,
         ['Content-Type' => 'application/json']
@@ -66,16 +67,16 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     if (empty($possibleMoves)) {
         $nextMove = MoveDirection::UP;
     } else {
-        usort($possibleMoves, static function ($a, $b) {
-            return $a->foodDistance <=> $b->foodDistance;
-        });
+        usort(
+            $possibleMoves,
+            static fn ($a, $b): bool => $a->foodDistance <=> $b->foodDistance
+        );
         $nextMove = $possibleMoves[0]->direction;
     }
 
     $shout = null;
     if (empty($possibleMoves) || (random_int(1, 100) > 90)) {
-        $exceptionGenerator = new ExceptionGenerator();
-        $shout = $exceptionGenerator->randomMessage();
+        $shout = (new ExceptionGenerator())->randomMessage();
     }
 
     return response(
