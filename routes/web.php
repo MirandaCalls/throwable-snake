@@ -65,14 +65,12 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         );
     }
 
-    Log::info($possibleMoves);
-
     if (empty($possibleMoves)) {
         $nextMove = MoveDirection::UP;
     } else {
         usort(
             $possibleMoves,
-            static fn ($a, $b): bool => $a->foodDistance <=> $b->foodDistance
+            static fn ($a, $b): int => $a->foodDistance <=> $b->foodDistance
         );
         $nextMove = $possibleMoves[0]->direction;
     }
