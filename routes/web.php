@@ -8,6 +8,7 @@ use App\BattlesnakeApi\Response\SnakeResponseDetails;
 use App\BattlesnakeApi\Response\SnakeResponseMove;
 use App\BattlesnakeApi\Value\Coordinate;
 use App\BattlesnakeApi\Value\Battlesnake;
+use App\Snake\ExceptionGenerator;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -113,9 +114,16 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         $nextMove = $possibleMoves[0]['direction'];
     }
 
+    $shout = null;
+    if (random_int(1, 100) > 90) {
+        $exceptionGenerator = new ExceptionGenerator();
+        $shout = $exceptionGenerator->randomMessage();
+    }
+
     return response(
         $serde->serialize(new SnakeResponseMove(
             move: $nextMove,
+            shout: $shout,
         ), 'json'),
         200,
         ['Content-Type' => 'application/json']
