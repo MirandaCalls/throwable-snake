@@ -1,13 +1,13 @@
 <?php
 
-use App\Battlesnake\Enum\MoveDirection;
-use App\Battlesnake\Request\SnakeRequestEnd;
-use App\Battlesnake\Request\SnakeRequestMove;
-use App\Battlesnake\Request\SnakeRequestStart;
-use App\Battlesnake\Response\SnakeResponseDetails;
-use App\Battlesnake\Response\SnakeResponseMove;
-use App\Battlesnake\Value\Coordinate;
-use App\Battlesnake\Value\Battlesnake;
+use App\BattlesnakeApi\Enum\MoveDirection;
+use App\BattlesnakeApi\Request\SnakeRequestEnd;
+use App\BattlesnakeApi\Request\SnakeRequestMove;
+use App\BattlesnakeApi\Request\SnakeRequestStart;
+use App\BattlesnakeApi\Response\SnakeResponseDetails;
+use App\BattlesnakeApi\Response\SnakeResponseMove;
+use App\BattlesnakeApi\Value\Coordinate;
+use App\BattlesnakeApi\Value\Battlesnake;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
