@@ -12,7 +12,6 @@ use App\Snake\ExceptionGenerator;
 use App\Snake\PossibleMove;
 use Crell\Serde\SerdeCommon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (SerdeCommon $serde) {
@@ -29,11 +28,6 @@ Route::get('/', function (SerdeCommon $serde) {
         200,
         ['Content-Type' => 'application/json']
     );
-});
-
-Route::post('/start', function (Request $request, SerdeCommon $serde) {
-    $serde->deserialize($request->getContent(), 'json', SnakeRequestStart::class);
-    return response()->noContent();
 });
 
 Route::post('/move', function (Request $request, SerdeCommon $serde) {
@@ -65,29 +59,25 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         );
     }
 
-    if (empty($possibleMoves)) {
-        $nextMove = MoveDirection::UP;
-    } else {
-        usort(
-            $possibleMoves,
-            static fn ($a, $b): int => $a->foodDistance <=> $b->foodDistance
-        );
-        $nextMove = $possibleMoves[0]->direction;
-    }
-
-    $shout = null;
-    if (empty($possibleMoves) || (random_int(1, 100) > 90)) {
-        $shout = (new ExceptionGenerator())->randomMessage();
-    }
+    usort(
+        $possibleMoves,
+        static fn ($a, $b): int => $a->foodDistance <=> $b->foodDistance
+    );
+    $noPossibleMoves = empty($possibleMoves);
 
     return response(
         $serde->serialize(new SnakeResponseMove(
-            move: $nextMove,
-            shout: $shout,
+            move: $noPossibleMoves ? MoveDirection::UP : $possibleMoves[0]->direction,
+            shout: ($noPossibleMoves || (random_int(1, 100) > 90)) ? (new ExceptionGenerator)->randomMessage() : null,
         ), 'json'),
         200,
         ['Content-Type' => 'application/json']
     );
+});
+
+Route::post('/start', function (Request $request, SerdeCommon $serde) {
+    $serde->deserialize($request->getContent(), 'json', SnakeRequestStart::class);
+    return response()->noContent();
 });
 
 Route::post('/end', function (Request $request, SerdeCommon $serde) {
