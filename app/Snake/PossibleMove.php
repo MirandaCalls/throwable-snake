@@ -15,6 +15,7 @@ class PossibleMove
         public int $foodDistance = 0,
         public bool $isKillingMove = false,
         public int $huntDistance = 0,
+        public int $spaceAvailable = 0,
     ) {
     }
 
@@ -24,6 +25,51 @@ class PossibleMove
             $this->position->x >= $board->width ||
             $this->position->y < 0 ||
             $this->position->y >= $board->height;
+    }
+
+    public function floodFill(Board $board, array $snakes): int
+    {
+        $blocked = [];
+        foreach ($snakes as $snake) {
+            foreach (array_slice($snake->body, 0, -1) as $part) {
+                $blocked[$part->x . ',' . $part->y] = true;
+            }
+        }
+
+        $visited = [];
+        $queue = [$this->position];
+        $count = 0;
+
+        while (!empty($queue)) {
+            $current = array_shift($queue);
+            $key = $current->x . ',' . $current->y;
+
+            if (isset($visited[$key])) {
+                continue;
+            }
+            $visited[$key] = true;
+            $count++;
+
+            foreach ([
+                new Coordinate($current->x, $current->y + 1),
+                new Coordinate($current->x, $current->y - 1),
+                new Coordinate($current->x - 1, $current->y),
+                new Coordinate($current->x + 1, $current->y),
+            ] as $neighbor) {
+                $neighborKey = $neighbor->x . ',' . $neighbor->y;
+                if (
+                    $neighbor->x < 0 || $neighbor->x >= $board->width ||
+                    $neighbor->y < 0 || $neighbor->y >= $board->height ||
+                    isset($visited[$neighborKey]) ||
+                    isset($blocked[$neighborKey])
+                ) {
+                    continue;
+                }
+                $queue[] = $neighbor;
+            }
+        }
+
+        return $count;
     }
 
     public function isAdjacentToSnakeHead(Battlesnake $snake): bool

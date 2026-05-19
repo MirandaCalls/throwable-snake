@@ -114,6 +114,18 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         }
     }
 
+    foreach ($possibleMoves as $move) {
+        $move->spaceAvailable = $move->floodFill($board, $board->snakes);
+    }
+
+    $safeMoves = array_filter(
+        $possibleMoves,
+        static fn(PossibleMove $m): bool => $m->spaceAvailable >= $throwableSnake->length
+    );
+    if (!empty($safeMoves)) {
+        $possibleMoves = $safeMoves;
+    }
+
     usort(
         $possibleMoves,
         static function ($a, $b) use ($needsFood, $huntTarget): int {
@@ -126,7 +138,7 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             if ($huntTarget !== null) {
                 return $a->huntDistance <=> $b->huntDistance;
             }
-            return 0;
+            return $b->spaceAvailable <=> $a->spaceAvailable;
         }
     );
 
