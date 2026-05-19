@@ -14,6 +14,7 @@ class PossibleMove
         public Coordinate $position,
         public int $foodDistance = 0,
         public bool $isKillingMove = false,
+        public int $huntDistance = 0,
     ) {
     }
 

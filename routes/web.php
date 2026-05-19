@@ -85,10 +85,39 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         : 0;
     $needsFood = ($throwableSnake->health - $closestFoodDistance) < $healthThreshold;
 
+    $huntTarget = null;
+    $minHuntDistance = PHP_INT_MAX;
+    foreach ($board->snakes as $snake) {
+        if ($snake->id === $throwableSnake->id || $snake->length >= $throwableSnake->length) {
+            continue;
+        }
+        $distance = $throwableSnake->head->distanceFrom($snake->head);
+        if ($distance < $minHuntDistance) {
+            $minHuntDistance = $distance;
+            $huntTarget = $snake;
+        }
+    }
+
+    if ($huntTarget !== null) {
+        foreach ($possibleMoves as $move) {
+            $move->huntDistance = $move->position->distanceFrom($huntTarget->head);
+        }
+    }
+
     usort(
         $possibleMoves,
-        static fn ($a, $b): int => $b->isKillingMove <=> $a->isKillingMove
-            ?: ($needsFood ? $a->foodDistance <=> $b->foodDistance : 0)
+        static function ($a, $b) use ($needsFood, $huntTarget): int {
+            if ($a->isKillingMove !== $b->isKillingMove) {
+                return $b->isKillingMove <=> $a->isKillingMove;
+            }
+            if ($needsFood) {
+                return $a->foodDistance <=> $b->foodDistance;
+            }
+            if ($huntTarget !== null) {
+                return $a->huntDistance <=> $b->huntDistance;
+            }
+            return 0;
+        }
     );
 
     $noPossibleMoves = empty($possibleMoves);
