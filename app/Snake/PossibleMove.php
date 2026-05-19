@@ -13,6 +13,7 @@ class PossibleMove
         public MoveDirection $direction,
         public Coordinate $position,
         public int $foodDistance = 0,
+        public bool $isKillingMove = false,
     ) {
     }
 
@@ -22,6 +23,13 @@ class PossibleMove
             $this->position->x >= $board->width ||
             $this->position->y < 0 ||
             $this->position->y >= $board->height;
+    }
+
+    public function isAdjacentToSnakeHead(Battlesnake $snake): bool
+    {
+        $head = $snake->head;
+        return ($this->position->x === $head->x && abs($this->position->y - $head->y) === 1)
+            || ($this->position->y === $head->y && abs($this->position->x - $head->x) === 1);
     }
 
     public function collidesWithSnake(Battlesnake $snake): bool

@@ -49,20 +49,48 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         );
     }
 
+    foreach ($board->snakes as $snake) {
+        if ($snake->id === $throwableSnake->id) {
+            continue;
+        }
+
+        $possibleMoves = array_filter(
+            $possibleMoves,
+            static fn (PossibleMove $move): bool =>
+                !$move->isAdjacentToSnakeHead($snake) || $throwableSnake->length > $snake->length
+        );
+
+        foreach ($possibleMoves as $move) {
+            if ($move->isAdjacentToSnakeHead($snake)) {
+                $move->isKillingMove = true;
+            }
+        }
+    }
+
     /** @var PossibleMove $move */
     foreach ($possibleMoves as $move) {
-        $move->foodDistance = min(
-            array_map(
-                static fn(Coordinate $f): int => $move->position->distanceFrom($f),
-                $board->food
-            )
-        );
+        if (!empty($board->food)) {
+            $move->foodDistance = min(
+                array_map(
+                    static fn(Coordinate $f): int => $move->position->distanceFrom($f),
+                    $board->food
+                )
+            );
+        }
     }
+
+    $healthThreshold = config('snake.health_threshold');
+    $closestFoodDistance = !empty($possibleMoves)
+        ? min(array_map(static fn(PossibleMove $m): int => $m->foodDistance, $possibleMoves))
+        : 0;
+    $needsFood = ($throwableSnake->health - $closestFoodDistance) < $healthThreshold;
 
     usort(
         $possibleMoves,
-        static fn ($a, $b): int => $a->foodDistance <=> $b->foodDistance
+        static fn ($a, $b): int => $b->isKillingMove <=> $a->isKillingMove
+            ?: ($needsFood ? $a->foodDistance <=> $b->foodDistance : 0)
     );
+
     $noPossibleMoves = empty($possibleMoves);
 
     return response(
