@@ -115,7 +115,7 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     }
 
     foreach ($possibleMoves as $move) {
-        $move->spaceAvailable = $move->floodFill($board, $board->snakes);
+        $move->spaceAvailable = $move->voronoiTerritory($board, $throwableSnake, $board->snakes);
     }
 
     $safeMoves = array_filter(

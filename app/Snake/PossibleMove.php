@@ -27,49 +27,55 @@ class PossibleMove
             $this->position->y >= $board->height;
     }
 
-    public function floodFill(Board $board, array $snakes): int
+    public function voronoiTerritory(Board $board, Battlesnake $you, array $allSnakes): int
     {
         $blocked = [];
-        foreach ($snakes as $snake) {
+        foreach ($allSnakes as $snake) {
             foreach (array_slice($snake->body, 0, -1) as $part) {
                 $blocked[$part->x . ',' . $part->y] = true;
             }
         }
 
         $visited = [];
-        $queue = [$this->position];
-        $count = 0;
+        $queue = [];
 
-        while (!empty($queue)) {
-            $current = array_shift($queue);
-            $key = $current->x . ',' . $current->y;
+        $ourKey = $this->position->x . ',' . $this->position->y;
+        $visited[$ourKey] = $you->id;
+        $queue[] = [$this->position->x, $this->position->y, $you->id];
 
-            if (isset($visited[$key])) {
+        foreach ($allSnakes as $snake) {
+            if ($snake->id === $you->id) {
                 continue;
             }
-            $visited[$key] = true;
-            $count++;
-
-            foreach ([
-                new Coordinate($current->x, $current->y + 1),
-                new Coordinate($current->x, $current->y - 1),
-                new Coordinate($current->x - 1, $current->y),
-                new Coordinate($current->x + 1, $current->y),
-            ] as $neighbor) {
-                $neighborKey = $neighbor->x . ',' . $neighbor->y;
-                if (
-                    $neighbor->x < 0 || $neighbor->x >= $board->width ||
-                    $neighbor->y < 0 || $neighbor->y >= $board->height ||
-                    isset($visited[$neighborKey]) ||
-                    isset($blocked[$neighborKey])
-                ) {
-                    continue;
-                }
-                $queue[] = $neighbor;
+            $headKey = $snake->head->x . ',' . $snake->head->y;
+            if (!isset($visited[$headKey])) {
+                $visited[$headKey] = $snake->id;
+                $queue[] = [$snake->head->x, $snake->head->y, $snake->id];
             }
         }
 
-        return $count;
+        $ourCount = 1;
+
+        while (!empty($queue)) {
+            [$x, $y, $snakeId] = array_shift($queue);
+
+            foreach ([[$x, $y + 1], [$x, $y - 1], [$x - 1, $y], [$x + 1, $y]] as [$nx, $ny]) {
+                if ($nx < 0 || $nx >= $board->width || $ny < 0 || $ny >= $board->height) {
+                    continue;
+                }
+                $neighborKey = $nx . ',' . $ny;
+                if (isset($visited[$neighborKey]) || isset($blocked[$neighborKey])) {
+                    continue;
+                }
+                $visited[$neighborKey] = $snakeId;
+                if ($snakeId === $you->id) {
+                    $ourCount++;
+                }
+                $queue[] = [$nx, $ny, $snakeId];
+            }
+        }
+
+        return $ourCount;
     }
 
     public function isAdjacentToSnakeHead(Battlesnake $snake): bool
