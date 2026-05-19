@@ -83,7 +83,17 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     $closestFoodDistance = !empty($possibleMoves)
         ? min(array_map(static fn(PossibleMove $m): int => $m->foodDistance, $possibleMoves))
         : 0;
-    $needsFood = ($throwableSnake->health - $closestFoodDistance) < $healthThreshold;
+
+    $enemySnakes = array_filter(
+        $board->snakes,
+        static fn(Battlesnake $s): bool => $s->id !== $throwableSnake->id
+    );
+    $isShortest = !empty($enemySnakes) && empty(array_filter(
+        $enemySnakes,
+        static fn(Battlesnake $s): bool => $s->length <= $throwableSnake->length
+    ));
+
+    $needsFood = $isShortest || ($throwableSnake->health - $closestFoodDistance) < $healthThreshold;
 
     $huntTarget = null;
     $minHuntDistance = PHP_INT_MAX;
