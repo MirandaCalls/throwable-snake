@@ -10,28 +10,34 @@ use App\BattlesnakeApi\Value\Coordinate;
 class PossibleMove
 {
     public function __construct(
-        public MoveDirection $direction,
-        public Coordinate $position,
-        public int $foodDistance = 0,
-        public bool $isKillingMove = false,
-        public int $huntDistance = 0,
-        public int $spaceAvailable = 0,
-        public int $floodFillSpace = 0,
+        private readonly Board        $board,
+        private readonly Battlesnake  $owningSnake,
+        public readonly MoveDirection $direction,
+        public readonly Coordinate    $position,
+        public int                    $foodDistance = 0,
+        public bool                   $isKillingMove = false,
+        public int                    $huntDistance = 0,
+        private int                   $spaceAvailable = 0,
+        private int                   $floodFillSpace = 0,
     ) {
     }
 
-    public function isOutOfBounds(Board $board): bool
+    public function isOutOfBounds(): bool
     {
         return $this->position->x < 0 ||
-            $this->position->x >= $board->width ||
+            $this->position->x >= $this->board->width ||
             $this->position->y < 0 ||
-            $this->position->y >= $board->height;
+            $this->position->y >= $this->board->height;
     }
 
-    public function voronoiTerritory(Board $board, Battlesnake $you, array $allSnakes): int
+    public function voronoiTerritory(): int
     {
+        if ($this->spaceAvailable !== 0) {
+            return $this->spaceAvailable;
+        }
+
         $blocked = [];
-        foreach ($allSnakes as $snake) {
+        foreach ($this->board->snakes as $snake) {
             foreach (array_slice($snake->body, 0, -1) as $part) {
                 $blocked[$part->x . ',' . $part->y] = true;
             }
@@ -41,11 +47,11 @@ class PossibleMove
         $queue = [];
 
         $ourKey = $this->position->x . ',' . $this->position->y;
-        $visited[$ourKey] = $you->id;
-        $queue[] = [$this->position->x, $this->position->y, $you->id];
+        $visited[$ourKey] = $this->owningSnake->id;
+        $queue[] = [$this->position->x, $this->position->y, $this->owningSnake->id];
 
-        foreach ($allSnakes as $snake) {
-            if ($snake->id === $you->id) {
+        foreach ($this->board->snakes as $snake) {
+            if ($snake->id === $this->owningSnake->id) {
                 continue;
             }
             $headKey = $snake->head->x . ',' . $snake->head->y;
@@ -61,7 +67,7 @@ class PossibleMove
             [$x, $y, $snakeId] = array_shift($queue);
 
             foreach ([[$x, $y + 1], [$x, $y - 1], [$x - 1, $y], [$x + 1, $y]] as [$nx, $ny]) {
-                if ($nx < 0 || $nx >= $board->width || $ny < 0 || $ny >= $board->height) {
+                if ($nx < 0 || $nx >= $this->board->width || $ny < 0 || $ny >= $this->board->height) {
                     continue;
                 }
                 $neighborKey = $nx . ',' . $ny;
@@ -69,20 +75,25 @@ class PossibleMove
                     continue;
                 }
                 $visited[$neighborKey] = $snakeId;
-                if ($snakeId === $you->id) {
+                if ($snakeId === $this->owningSnake->id) {
                     $ourCount++;
                 }
                 $queue[] = [$nx, $ny, $snakeId];
             }
         }
 
-        return $ourCount;
+        $this->spaceAvailable = $ourCount;
+
+        return $this->spaceAvailable;
     }
 
-    public function floodFill(Board $board, array $allSnakes): int
+    public function floodFill(): int
     {
+        if ($this->floodFillSpace !== 0) {
+            return $this->floodFillSpace;
+        }
         $blocked = [];
-        foreach ($allSnakes as $snake) {
+        foreach ($this->board->snakes as $snake) {
             foreach (array_slice($snake->body, 0, -1) as $part) {
                 $blocked[$part->x . ',' . $part->y] = true;
             }
@@ -102,7 +113,7 @@ class PossibleMove
             $count++;
 
             foreach ([[$x, $y + 1], [$x, $y - 1], [$x - 1, $y], [$x + 1, $y]] as [$nx, $ny]) {
-                if ($nx < 0 || $nx >= $board->width || $ny < 0 || $ny >= $board->height) {
+                if ($nx < 0 || $nx >= $this->board->width || $ny < 0 || $ny >= $this->board->height) {
                     continue;
                 }
                 $neighborKey = $nx . ',' . $ny;
@@ -114,7 +125,9 @@ class PossibleMove
             }
         }
 
-        return $count;
+        $this->floodFillSpace = $count;
+
+        return $this->floodFillSpace;
     }
 
     public function isAdjacentToSnakeHead(Battlesnake $snake): bool
@@ -124,52 +137,16 @@ class PossibleMove
             || ($this->position->y === $head->y && abs($this->position->x - $head->x) === 1);
     }
 
-    public function collidesWithSnake(Battlesnake $snake): bool
+    public function collidesWithAnySnake(): bool
     {
-        /** @var Coordinate $part */
-        foreach ($snake->body as $part) {
-            if ($part->x === $this->position->x && $part->y === $this->position->y) {
-                return true;
+        foreach ($this->board->snakes as $snake) {
+            foreach ($snake->body as $part) {
+                if ($part->x === $this->position->x && $part->y === $this->position->y) {
+                    return true;
+                }
             }
         }
 
         return false;
-    }
-
-    /**
-     * @return PossibleMove[]
-     **/
-    public static function possibleMovesFromPosition(Coordinate $position): array
-    {
-        return [
-            new PossibleMove(
-                direction: MoveDirection::UP,
-                position: new Coordinate(
-                    x: $position->x,
-                    y: $position->y + 1,
-                )
-            ),
-            new PossibleMove(
-                direction: MoveDirection::DOWN,
-                position: new Coordinate(
-                    x: $position->x,
-                    y: $position->y - 1,
-                )
-            ),
-            new PossibleMove(
-                direction: MoveDirection::LEFT,
-                position: new Coordinate(
-                    x: $position->x - 1,
-                    y: $position->y,
-                )
-            ),
-            new PossibleMove(
-                direction: MoveDirection::RIGHT,
-                position: new Coordinate(
-                    x: $position->x + 1,
-                    y: $position->y,
-                )
-            ),
-        ];
     }
 }

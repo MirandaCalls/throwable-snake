@@ -15,7 +15,7 @@ readonly class Board
         /** @var Coordinate[] $hazards */
         #[Serde\SequenceField(arrayType: Coordinate::class)]
         public array $hazards,
-        /** @var Coordinate[] $snakes */
+        /** @var Battlesnake[] $snakes */
         #[Serde\SequenceField(arrayType: Battlesnake::class)]
         public array $snakes
     ) {

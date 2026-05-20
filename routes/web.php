@@ -37,17 +37,14 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     $throwableSnake = $data->you;
 
     $possibleMoves = array_filter(
-        PossibleMove::possibleMovesFromPosition($throwableSnake->head),
-        static fn (PossibleMove $move): bool => !$move->isOutOfBounds($board)
+        $throwableSnake->possibleMoves($board),
+        static fn (PossibleMove $move): bool => !$move->isOutOfBounds()
     );
 
-    /** @var Battlesnake $snake */
-    foreach ($board->snakes as $snake) {
-        $possibleMoves = array_filter(
-            $possibleMoves,
-            static fn (PossibleMove $move): bool => !$move->collidesWithSnake($snake)
-        );
-    }
+    $possibleMoves = array_filter(
+        $possibleMoves,
+        static fn (PossibleMove $move): bool => !$move->collidesWithAnySnake()
+    );
 
     foreach ($board->snakes as $snake) {
         if ($snake->id === $throwableSnake->id) {
@@ -114,14 +111,9 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         }
     }
 
-    foreach ($possibleMoves as $move) {
-        $move->floodFillSpace = $move->floodFill($board, $board->snakes);
-        $move->spaceAvailable = $move->voronoiTerritory($board, $throwableSnake, $board->snakes);
-    }
-
     $safeMoves = array_filter(
         $possibleMoves,
-        static fn(PossibleMove $m): bool => $m->floodFillSpace >= $throwableSnake->length
+        static fn(PossibleMove $m): bool => $m->floodFill() >= $throwableSnake->length
     );
     if (!empty($safeMoves)) {
         $possibleMoves = $safeMoves;
@@ -129,7 +121,7 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
 
     usort(
         $possibleMoves,
-        static function ($a, $b) use ($needsFood, $huntTarget): int {
+        static function (PossibleMove $a, PossibleMove $b) use ($needsFood, $huntTarget): int {
             if ($a->isKillingMove !== $b->isKillingMove) {
                 return $b->isKillingMove <=> $a->isKillingMove;
             }
@@ -139,10 +131,10 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             if ($huntTarget !== null) {
                 return $a->huntDistance <=> $b->huntDistance;
             }
-            if ($a->floodFillSpace !== $b->floodFillSpace) {
-                return $b->floodFillSpace <=> $a->floodFillSpace;
+            if ($a->floodFill() !== $b->floodFill()) {
+                return $b->floodFill() <=> $a->floodFill();
             }
-            return $b->spaceAvailable <=> $a->spaceAvailable;
+            return $b->voronoiTerritory() <=> $a->voronoiTerritory();
         }
     );
 
