@@ -9,9 +9,9 @@ use App\BattlesnakeApi\Value\Coordinate;
 
 class PossibleMove
 {
-    private ?int  $foodDistanceCache  = null;
-    private ?bool $isKillingMoveCache = null;
-    private ?int  $huntDistanceCache  = null;
+    private ?int       $foodDistanceCache  = null;
+    private ?bool      $isKillingMoveCache = null;
+    private int|null|false $huntDistanceCache  = false;
 
     public function __construct(
         private readonly Board        $board,
@@ -183,9 +183,9 @@ class PossibleMove
         );
     }
 
-    public function huntDistance(): int
+    public function huntDistance(): ?int
     {
-        if ($this->huntDistanceCache !== null) {
+        if ($this->huntDistanceCache !== false) {
             return $this->huntDistanceCache;
         }
         $huntTarget = null;
@@ -201,7 +201,7 @@ class PossibleMove
             }
         }
         if ($huntTarget === null) {
-            return $this->huntDistanceCache = PHP_INT_MAX;
+            return $this->huntDistanceCache = null;
         }
         return $this->huntDistanceCache = $this->position->distanceFrom($huntTarget->head);
     }

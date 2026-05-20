@@ -90,8 +90,9 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             if ($needsFood) {
                 return $a->foodDistance() <=> $b->foodDistance();
             }
-            if ($a->huntDistance() !== $b->huntDistance()) {
-                return $a->huntDistance() <=> $b->huntDistance();
+            $aHunt = $a->huntDistance();
+            if ($aHunt !== null && $aHunt !== $b->huntDistance()) {
+                return $aHunt <=> $b->huntDistance();
             }
             if ($a->floodFill() !== $b->floodFill()) {
                 return $b->floodFill() <=> $a->floodFill();
