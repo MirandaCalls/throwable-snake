@@ -45,17 +45,10 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
         static fn (PossibleMove $move): bool => !$move->collidesWithAnySnake()
     );
 
-    foreach ($board->snakes as $snake) {
-        if ($snake->id === $throwableSnake->id) {
-            continue;
-        }
-
-        $possibleMoves = array_filter(
-            $possibleMoves,
-            static fn (PossibleMove $move): bool =>
-                !$move->isAdjacentToSnakeHead($snake) || $throwableSnake->length > $snake->length
-        );
-    }
+    $possibleMoves = array_filter(
+        $possibleMoves,
+        static fn (PossibleMove $move): bool => !$move->isDangerous()
+    );
 
     $healthThreshold = config('snake.health_threshold');
     $closestFoodDistance = !empty($possibleMoves)
