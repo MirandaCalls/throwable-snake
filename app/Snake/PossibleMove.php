@@ -16,6 +16,7 @@ class PossibleMove
         public bool $isKillingMove = false,
         public int $huntDistance = 0,
         public int $spaceAvailable = 0,
+        public int $floodFillSpace = 0,
     ) {
     }
 
@@ -76,6 +77,44 @@ class PossibleMove
         }
 
         return $ourCount;
+    }
+
+    public function floodFill(Board $board, array $allSnakes): int
+    {
+        $blocked = [];
+        foreach ($allSnakes as $snake) {
+            foreach (array_slice($snake->body, 0, -1) as $part) {
+                $blocked[$part->x . ',' . $part->y] = true;
+            }
+        }
+
+        $startKey = $this->position->x . ',' . $this->position->y;
+        if (isset($blocked[$startKey])) {
+            return 0;
+        }
+
+        $visited = [$startKey => true];
+        $queue = [[$this->position->x, $this->position->y]];
+        $count = 0;
+
+        while (!empty($queue)) {
+            [$x, $y] = array_shift($queue);
+            $count++;
+
+            foreach ([[$x, $y + 1], [$x, $y - 1], [$x - 1, $y], [$x + 1, $y]] as [$nx, $ny]) {
+                if ($nx < 0 || $nx >= $board->width || $ny < 0 || $ny >= $board->height) {
+                    continue;
+                }
+                $neighborKey = $nx . ',' . $ny;
+                if (isset($visited[$neighborKey]) || isset($blocked[$neighborKey])) {
+                    continue;
+                }
+                $visited[$neighborKey] = true;
+                $queue[] = [$nx, $ny];
+            }
+        }
+
+        return $count;
     }
 
     public function isAdjacentToSnakeHead(Battlesnake $snake): bool

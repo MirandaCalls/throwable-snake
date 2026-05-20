@@ -115,12 +115,13 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
     }
 
     foreach ($possibleMoves as $move) {
+        $move->floodFillSpace = $move->floodFill($board, $board->snakes);
         $move->spaceAvailable = $move->voronoiTerritory($board, $throwableSnake, $board->snakes);
     }
 
     $safeMoves = array_filter(
         $possibleMoves,
-        static fn(PossibleMove $m): bool => $m->spaceAvailable >= $throwableSnake->length
+        static fn(PossibleMove $m): bool => $m->floodFillSpace >= $throwableSnake->length
     );
     if (!empty($safeMoves)) {
         $possibleMoves = $safeMoves;
@@ -137,6 +138,9 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             }
             if ($huntTarget !== null) {
                 return $a->huntDistance <=> $b->huntDistance;
+            }
+            if ($a->floodFillSpace !== $b->floodFillSpace) {
+                return $b->floodFillSpace <=> $a->floodFillSpace;
             }
             return $b->spaceAvailable <=> $a->spaceAvailable;
         }
