@@ -9,14 +9,15 @@ use App\BattlesnakeApi\Value\Coordinate;
 
 class PossibleMove
 {
+    private ?int       $foodDistanceCache  = null;
+    private ?bool      $isKillingMoveCache = null;
+    private int|null|false $huntDistanceCache  = false;
+
     public function __construct(
         private readonly Board        $board,
         private readonly Battlesnake  $owningSnake,
         public readonly MoveDirection $direction,
         public readonly Coordinate    $position,
-        public int                    $foodDistance = 0,
-        public bool                   $isKillingMove = false,
-        public int                    $huntDistance = 0,
         private int                   $spaceAvailable = 0,
         private int                   $floodFillSpace = 0,
     ) {
@@ -148,5 +149,60 @@ class PossibleMove
         }
 
         return false;
+    }
+
+    public function isKillingMove(): bool
+    {
+        if ($this->isKillingMoveCache !== null) {
+            return $this->isKillingMoveCache;
+        }
+        foreach ($this->board->snakes as $snake) {
+            if ($snake->id === $this->owningSnake->id) {
+                continue;
+            }
+            if ($this->isAdjacentToSnakeHead($snake) && $this->owningSnake->length > $snake->length) {
+                return $this->isKillingMoveCache = true;
+            }
+        }
+        return $this->isKillingMoveCache = false;
+    }
+
+    public function foodDistance(): int
+    {
+        if ($this->foodDistanceCache !== null) {
+            return $this->foodDistanceCache;
+        }
+        if (empty($this->board->food)) {
+            return $this->foodDistanceCache = 0;
+        }
+        return $this->foodDistanceCache = min(
+            array_map(
+                fn(Coordinate $f): int => $this->position->distanceFrom($f),
+                $this->board->food
+            )
+        );
+    }
+
+    public function huntDistance(): ?int
+    {
+        if ($this->huntDistanceCache !== false) {
+            return $this->huntDistanceCache;
+        }
+        $huntTarget = null;
+        $minDistance = PHP_INT_MAX;
+        foreach ($this->board->snakes as $snake) {
+            if ($snake->id === $this->owningSnake->id || $snake->length >= $this->owningSnake->length) {
+                continue;
+            }
+            $d = $this->owningSnake->head->distanceFrom($snake->head);
+            if ($d < $minDistance) {
+                $minDistance = $d;
+                $huntTarget  = $snake;
+            }
+        }
+        if ($huntTarget === null) {
+            return $this->huntDistanceCache = null;
+        }
+        return $this->huntDistanceCache = $this->position->distanceFrom($huntTarget->head);
     }
 }

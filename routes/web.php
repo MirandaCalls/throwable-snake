@@ -6,7 +6,6 @@ use App\BattlesnakeApi\Request\SnakeRequestMove;
 use App\BattlesnakeApi\Request\SnakeRequestStart;
 use App\BattlesnakeApi\Response\SnakeResponseDetails;
 use App\BattlesnakeApi\Response\SnakeResponseMove;
-use App\BattlesnakeApi\Value\Coordinate;
 use App\BattlesnakeApi\Value\Battlesnake;
 use App\Snake\ExceptionGenerator;
 use App\Snake\PossibleMove;
@@ -56,29 +55,11 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             static fn (PossibleMove $move): bool =>
                 !$move->isAdjacentToSnakeHead($snake) || $throwableSnake->length > $snake->length
         );
-
-        foreach ($possibleMoves as $move) {
-            if ($move->isAdjacentToSnakeHead($snake)) {
-                $move->isKillingMove = true;
-            }
-        }
-    }
-
-    /** @var PossibleMove $move */
-    foreach ($possibleMoves as $move) {
-        if (!empty($board->food)) {
-            $move->foodDistance = min(
-                array_map(
-                    static fn(Coordinate $f): int => $move->position->distanceFrom($f),
-                    $board->food
-                )
-            );
-        }
     }
 
     $healthThreshold = config('snake.health_threshold');
     $closestFoodDistance = !empty($possibleMoves)
-        ? min(array_map(static fn(PossibleMove $m): int => $m->foodDistance, $possibleMoves))
+        ? min(array_map(static fn(PossibleMove $m): int => $m->foodDistance(), $possibleMoves))
         : 0;
 
     $enemySnakes = array_filter(
@@ -92,25 +73,6 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
 
     $needsFood = $isShortest || ($throwableSnake->health - $closestFoodDistance) < $healthThreshold;
 
-    $huntTarget = null;
-    $minHuntDistance = PHP_INT_MAX;
-    foreach ($board->snakes as $snake) {
-        if ($snake->id === $throwableSnake->id || $snake->length >= $throwableSnake->length) {
-            continue;
-        }
-        $distance = $throwableSnake->head->distanceFrom($snake->head);
-        if ($distance < $minHuntDistance) {
-            $minHuntDistance = $distance;
-            $huntTarget = $snake;
-        }
-    }
-
-    if ($huntTarget !== null) {
-        foreach ($possibleMoves as $move) {
-            $move->huntDistance = $move->position->distanceFrom($huntTarget->head);
-        }
-    }
-
     $safeMoves = array_filter(
         $possibleMoves,
         static fn(PossibleMove $m): bool => $m->floodFill() >= $throwableSnake->length
@@ -121,15 +83,16 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
 
     usort(
         $possibleMoves,
-        static function (PossibleMove $a, PossibleMove $b) use ($needsFood, $huntTarget): int {
-            if ($a->isKillingMove !== $b->isKillingMove) {
-                return $b->isKillingMove <=> $a->isKillingMove;
+        static function (PossibleMove $a, PossibleMove $b) use ($needsFood): int {
+            if ($a->isKillingMove() !== $b->isKillingMove()) {
+                return $b->isKillingMove() <=> $a->isKillingMove();
             }
             if ($needsFood) {
-                return $a->foodDistance <=> $b->foodDistance;
+                return $a->foodDistance() <=> $b->foodDistance();
             }
-            if ($huntTarget !== null) {
-                return $a->huntDistance <=> $b->huntDistance;
+            $aHunt = $a->huntDistance();
+            if ($aHunt !== null && $aHunt !== $b->huntDistance()) {
+                return $aHunt <=> $b->huntDistance();
             }
             if ($a->floodFill() !== $b->floodFill()) {
                 return $b->floodFill() <=> $a->floodFill();
