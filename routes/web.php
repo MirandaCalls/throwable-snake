@@ -51,11 +51,11 @@ Route::post('/move', function (Request $request, SerdeCommon $serde) {
             continue;
         }
 
-//        $possibleMoves = array_filter(
-//            $possibleMoves,
-//            static fn (PossibleMove $move): bool =>
-//                !$move->isAdjacentToSnakeHead($snake) || $throwableSnake->length > $snake->length
-//        );
+        $possibleMoves = array_filter(
+            $possibleMoves,
+            static fn (PossibleMove $move): bool =>
+                !$move->isAdjacentToSnakeHead($snake) || $throwableSnake->length > $snake->length
+        );
 
         foreach ($possibleMoves as $move) {
             if ($move->isAdjacentToSnakeHead($snake)) {
