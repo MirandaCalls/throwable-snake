@@ -138,6 +138,19 @@ class PossibleMove
             || ($this->position->y === $head->y && abs($this->position->x - $head->x) === 1);
     }
 
+    public function isDangerous(): bool
+    {
+        foreach ($this->board->snakes as $snake) {
+            if ($snake->id === $this->owningSnake->id) {
+                continue;
+            }
+            if ($this->isAdjacentToSnakeHead($snake) && $this->owningSnake->length <= $snake->length) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function collidesWithAnySnake(): bool
     {
         foreach ($this->board->snakes as $snake) {
